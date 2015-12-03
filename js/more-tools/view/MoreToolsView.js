@@ -63,7 +63,7 @@ define( function( require ) {
       var waveSensorIcon = new WaveSensorNode(
         this.modelViewTransform,
         waveSensor.copy(), {
-          scale: 0.25
+          scale: 0.4
         }
       );
       waveSensorIcon.mouseArea = Shape.bounds( waveSensorIcon.localBounds );
@@ -145,7 +145,7 @@ define( function( require ) {
     },
     getVelocitySensorIcon: function() {
       var moreToolsView = this;
-      var velocitySensorToolboxScale = 1.4;
+      var velocitySensorToolboxScale = 1.2;
       var velocitySensorIconNode = new VelocitySensorNode(
         this.modelViewTransform,
         this.moreToolsModel.velocitySensor.copy(),
