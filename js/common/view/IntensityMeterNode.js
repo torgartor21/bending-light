@@ -81,7 +81,8 @@ define( function( require ) {
     // Add the reading to the body node
     var valueNode = new Text( intensityMeter.reading.getString(), {
       font: new PhetFont( 25 ),
-      fill: 'black'
+      fill: 'black',
+      maxWidth: valueBackground.width * 0.85
     } );
 
     // add up all the shapes to form a body node
@@ -97,10 +98,6 @@ define( function( require ) {
     intensityMeter.readingProperty.link( function() {
       valueNode.setText( intensityMeter.reading.getString() );
       valueNode.center = valueBackground.center;
-      //valueNode.setTranslation(
-      //  valueBackground.centerX - valueNode.width / 2,
-      //  valueBackground.centerY + valueNode.height / 2
-      //);
     } );
 
     // Connect the sensor to the body with a gray wire
@@ -142,7 +139,7 @@ define( function( require ) {
 
   return inherit( Node, IntensityMeterNode, {
     resetRelativeLocations: function() {
-      this.bodyNode.center = this.probeNode.center.plusXY( 90, 10 );
+      this.probeNode.center = this.bodyNode.center.plusXY( 90, -10 );
       this.wireNode.updateWireShape();
     },
     updateWireShape: function() {

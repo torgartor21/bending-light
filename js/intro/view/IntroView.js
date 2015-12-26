@@ -50,87 +50,67 @@ define( function( require ) {
 
   /**
    * @param {IntroModel} introModel - model of intro screen
-   * @param {number} centerOffsetLeft - amount of space that center to be shifted to left
    * @param {boolean} hasMoreTools - whether contain more tools
-   * @param {number} IndexOfRefractionDecimals - decimalPlaces to show for index of refraction
+   * @param {number} indexOfRefractionDecimals - decimalPlaces to show for index of refraction
    * @param {function} createLaserControlPanel
+   * @param {Object} [options]
    * @constructor
    */
-  function IntroView( introModel, centerOffsetLeft, hasMoreTools, IndexOfRefractionDecimals, createLaserControlPanel ) {
+  function IntroView( introModel, hasMoreTools, indexOfRefractionDecimals, createLaserControlPanel, options ) {
 
+    options = _.extend( {
+
+      // in the Intro screen, it is shifted 102 to the left since there is extra room above the protractor toolbox
+      // for the laser to traverse to.
+      horizontalPlayAreaOffset: 102,
+
+      /**
+       * Specify how the drag angle should be clamped, in this case the laser must remain in the top left quadrant
+       * @param {number} angle
+       * @returns {*}
+       */
+      clampDragAngle: function( angle ) {
+        while ( angle < 0 ) { angle += Math.PI * 2; }
+        return Util.clamp( angle, Math.PI / 2, Math.PI );
+      },
+      /**
+       * Indicate if the laser is not at its max angle, and therefore can be dragged to larger angles
+       * @param {number} laserAngle
+       * @returns {boolean}
+       */
+      clockwiseArrowNotAtMax: function( laserAngle ) {
+        if ( introModel.laserView === 'ray' ) {
+          return laserAngle < Math.PI;
+        }
+        else {
+          return laserAngle < BendingLightConstants.MAX_ANGLE_IN_WAVE_MODE;
+        }
+      },
+      /**
+       * indicate if the laser is not at its min angle, and can therefore be dragged to smaller angles.
+       * @param {number} laserAngle
+       * @returns {boolean}
+       */
+      ccwArrowNotAtMax: function( laserAngle ) {
+        return laserAngle > Math.PI / 2;
+      }
+    }, options );
     var introView = this;
     this.introModel = introModel; // @public (read-only)
 
-    /**
-     * Specify how the drag angle should be clamped, in this case the laser must remain in the top left quadrant
-     * @param {number} angle
-     * @returns {*}
-     */
-    function clampDragAngle( angle ) {
-      while ( angle < 0 ) { angle += Math.PI * 2; }
-      return Util.clamp( angle, Math.PI / 2, Math.PI );
-    }
-
-    /**
-     * Indicate if the laser is not at its max angle, and therefore can be dragged to larger angles
-     * @param {number} laserAngle
-     * @returns {boolean}
-     */
-    function clockwiseArrowNotAtMax( laserAngle ) {
-      if ( introModel.laserView === 'ray' ) {
-        return laserAngle < Math.PI;
-      }
-      else {
-        return laserAngle < BendingLightConstants.MAX_ANGLE_IN_WAVE_MODE;
-      }
-    }
-
-    /**
-     * indicate if the laser is not at its min angle, and can therefore be dragged to smaller angles.
-     * @param {number} laserAngle
-     * @returns {boolean}
-     */
-    function ccwArrowNotAtMax( laserAngle ) {
-      return laserAngle > Math.PI / 2;
-    }
-
-    /**
-     * rotation if the user clicks anywhere on the object
-     * @param {Shape} full
-     * @returns {*}
-     */
-    function rotationRegionShape( full ) {
-
-      // in this screen, clicking anywhere on the laser (i.e. on its 'full' bounds) translates it, so always return the
-      // 'full' region
-      return full;
-    }
-
-    // get the function that chooses which region of the protractor can be used for rotation--none in this tab.
-    this.getProtractorRotationRegion = function() {
-
-      // empty shape since shouldn't be rotatable in this tab
-      return Shape.rect( 0, 0, 0, 0 );
-    };
-
-    // get the function that chooses which region of the protractor can be used for translation--both the inner bar and
-    // outer circle in this screen
-    this.getProtractorDragRegion = function( fullShape ) {
-      return fullShape;
-    };
-
     BendingLightView.call( this,
       introModel,
-      clampDragAngle,
-      clockwiseArrowNotAtMax,
-      ccwArrowNotAtMax,
-      this.getProtractorRotationRegion,
-      rotationRegionShape,
-      'laser',
-      centerOffsetLeft,
-      0,
-      // No need to handle occlusions
-      function() {}
+
+      // laserTranslationRegion - The Protractor shouldn't be rotatable in this screen
+      function() { return Shape.rect( 0, 0, 0, 0 ); },
+
+      // laserRotationRegion - In this screen, clicking anywhere on the laser (i.e. on its 'full' bounds)
+      // translates it, so always return the 'full' region.
+      function( full ) { return full; },
+
+      // laserHasKnob
+      false,
+      options
     );
 
     var stageWidth = this.layoutBounds.width;
@@ -142,7 +122,7 @@ define( function( require ) {
 
     // add control panels for setting the index of refraction for each medium
     var topMediumControlPanel = new MediumControlPanel( this, introModel.mediumColorFactory,
-      introModel.topMediumProperty, materialString, true, introModel.wavelengthProperty, IndexOfRefractionDecimals, {
+      introModel.topMediumProperty, materialString, true, introModel.wavelengthProperty, indexOfRefractionDecimals, {
         yMargin: 7
       } );
     var topMediumControlPanelXOffset = hasMoreTools ? 4 : 0;
@@ -158,7 +138,7 @@ define( function( require ) {
     // add control panels for setting the index of refraction for each medium
     var bottomMediumControlPanelXOffset = hasMoreTools ? 4 : 0;
     var bottomMediumControlPanel = new MediumControlPanel( this, introModel.mediumColorFactory,
-      introModel.bottomMediumProperty, materialString, true, introModel.wavelengthProperty, IndexOfRefractionDecimals, {
+      introModel.bottomMediumProperty, materialString, true, introModel.wavelengthProperty, indexOfRefractionDecimals, {
         yMargin: 7
       } );
     bottomMediumControlPanel.setTranslation(
@@ -362,9 +342,10 @@ define( function( require ) {
       // Show the probe in the play area and hide the icon
       introModel.intensityMeter.enabled = true;
 
-      // Center the probe on the pointer
-      var sensorViewPosition = intensityMeterNode.probeNode.globalToParentPoint( event.pointer.point );
-      introModel.intensityMeter.sensorPosition = modelViewTransform.viewToModelPosition( sensorViewPosition );
+      // Center the center-bottom of the body on the pointer
+      var bodyViewPosition = intensityMeterNode.bodyNode.globalToParentPoint( event.pointer.point )
+        .plusXY( -intensityMeterNode.bodyNode.width / 2, -intensityMeterNode.bodyNode.height + 5 );
+      introModel.intensityMeter.bodyPosition = modelViewTransform.viewToModelPosition( bodyViewPosition );
       intensityMeterNode.resetRelativeLocations();
       intensityMeterNode.syncModelFromView();
     } ) );

@@ -36,16 +36,24 @@ define( function( require ) {
     this.moreToolsModel = moreToolsModel; // @public (read-only)
     var moreToolsView = this;
 
-    IntroView.call( this, moreToolsModel, 0, true, 3, function( model ) {
-      return new VBox( {
-        spacing: 10,
-        align: 'left',
-        children: [
-          new LaserTypeAquaRadioButtonGroup( model.laserViewProperty ),
-          new WavelengthControl( model.wavelengthProperty, new Property( true ), 120 )
-        ]
+    IntroView.call( this, moreToolsModel,
+      true, // hasMoreTools
+      3, // indexOfRefractionDecimals
+
+      // createLaserControlPanel
+      function( model ) {
+        return new VBox( {
+          spacing: 10,
+          align: 'left',
+          children: [
+            new LaserTypeAquaRadioButtonGroup( model.laserViewProperty ),
+            new WavelengthControl( model.wavelengthProperty, new Property( true ), 120 )
+          ]
+        } );
+      }, {
+        verticalPlayAreaOffset: 0,
+        horizontalPlayAreaOffset: 0
       } );
-    } );
 
     // updates the visibility of speed controls
     Property.multilink( [ moreToolsModel.laserViewProperty, moreToolsModel.waveSensor.enabledProperty ],
@@ -114,20 +122,22 @@ define( function( require ) {
       waveSensorNode.bodyNode.addInputListener( bodyListener );
 
       waveSensorIcon.addInputListener( new ToolIconListener( [
-        bodyListener,
-        probe1Listener,
-        probe2Listener
-      ], function( event ) {
+          bodyListener,
+          probe1Listener,
+          probe2Listener
+        ], function( event ) {
 
-        // Show the probe in the play area and hide the icon
-        moreToolsView.moreToolsModel.waveSensor.enabled = true;
+          // Show the probe in the play area and hide the icon
+          moreToolsView.moreToolsModel.waveSensor.enabled = true;
 
-        // Center the probe on the pointer
-        var pt = moreToolsView.waveSensorNode.probe1Node.globalToParentPoint( event.pointer.point );
-        moreToolsView.moreToolsModel.waveSensor.probe1.position = modelViewTransform.viewToModelPosition( pt );
-        moreToolsView.waveSensorNode.resetRelativePositions();
-        moreToolsView.waveSensorNode.syncModelFromView();
-      } ) );
+          // Center the body label on the pointer
+          var pt = moreToolsView.waveSensorNode.bodyNode.globalToParentPoint( event.pointer.point )
+            .plusXY( 0, -moreToolsView.waveSensorNode.bodyNode.height / 2 + 5 );
+          moreToolsView.moreToolsModel.waveSensor.bodyPosition = modelViewTransform.viewToModelPosition( pt );
+          moreToolsView.waveSensorNode.resetRelativePositions();
+          moreToolsView.waveSensorNode.syncModelFromView();
+        } )
+      );
 
       this.events.on( 'layoutFinished', function( dx, dy, width, height ) {
 

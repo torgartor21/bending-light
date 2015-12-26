@@ -62,7 +62,7 @@ define( function( require ) {
     var createPrismIcon = function( prism ) {
       var prismShape = prism.copy();
       return new PrismNode( prismsModel, modelViewTransform, prismShape, prismToolboxNode, prismLayer,
-        dragBoundsProperty, occlusionHandler );
+        dragBoundsProperty, occlusionHandler, true );
     };
 
     // Iterate over the prism prototypes in the model and create a draggable icon for each one
@@ -100,7 +100,7 @@ define( function( require ) {
 
             // create a prism node and add to the prisms layer
             prismNode = new PrismNode( prismsModel, modelViewTransform, prismShape, prismToolboxNode, prismLayer,
-              dragBoundsProperty, occlusionHandler );
+              dragBoundsProperty, occlusionHandler, false );
             prismLayer.addChild( prismNode );
             prismShape.translate(
               modelViewTransform.viewToModelX( start.x ),
@@ -160,7 +160,6 @@ define( function( require ) {
       prismsModel.wavelengthProperty,
       2, {
         lineWidth: 0,
-        xMargin: 0,
         yMargin: 4
       } );
     this.objectMediumControlPanel = objectMediumControlPanel;

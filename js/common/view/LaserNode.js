@@ -20,8 +20,11 @@ define( function( require ) {
   var Shape = require( 'KITE/Shape' );
   var BendingLightConstants = require( 'BENDING_LIGHT/common/BendingLightConstants' );
   var Vector2 = require( 'DOT/Vector2' );
-  var Bounds2 = require( 'DOT/Bounds2' );
   var Property = require( 'AXON/Property' );
+
+  // images
+  var laserKnobImage = require( 'image!BENDING_LIGHT/laser_knob.png' );
+  var laserWithoutKnobImage = require( 'image!BENDING_LIGHT/laser.png' );
 
   // constants
   var dragRegionColor = new Color( 255, 0, 0, 0 );
@@ -37,15 +40,20 @@ define( function( require ) {
    *                                       translating the laser
    * @param {function} rotationRegion - select from the entire region and back region which should be used for rotating
    *                                       the laser
-   * @param {string} laserImage - name of the laser image
+   * @param {boolean} hasKnob - true if the laser should be shown with a knob
    * @param {Property.<Bounds2>} dragBoundsProperty - bounds that define where the laser may be dragged
    * @param {function} occlusionHandler - function that will move the laser out from behind a control panel if dropped
    *                                      there
    * @constructor
    */
   function LaserNode( modelViewTransform, laser, showRotationDragHandlesProperty, showTranslationDragHandlesProperty,
-                      clampDragAngle, translationRegion, rotationRegion, laserImage, dragBoundsProperty,
+                      clampDragAngle, translationRegion, rotationRegion, hasKnob, dragBoundsProperty,
                       occlusionHandler ) {
+
+    var laserImage = hasKnob ? laserKnobImage : laserWithoutKnobImage;
+
+    // @public (read-only), Used for radius and length of drag handlers
+    this.laserImageWidth = laserImage.width;
 
     // When mousing over or starting to drag the laser, increment the over count.  If it is more than zero
     // then show the drag handles.  This ensures they will be shown whenever dragging or over, and they won't flicker
@@ -80,7 +88,10 @@ define( function( require ) {
     dragBoundsProperty.link( function( dragBounds ) {
       var center = laser.emissionPoint;
       var eroded = dragBounds.erodedXY( lightImageHeight / 2, lightImageHeight / 2 );
-      laser.emissionPoint = modelViewTransform.viewToModelBounds( eroded ).getClosestPoint( center.x, center.y );
+
+      var newEmissionPoint = modelViewTransform.viewToModelBounds( eroded ).getClosestPoint( center.x, center.y );
+      var delta = newEmissionPoint.minus( laser.emissionPoint );
+      laser.translate( delta.x, delta.y );
     } );
 
     // add the drag region for translating the laser
@@ -143,6 +154,10 @@ define( function( require ) {
     // Add the drag region for rotating the laser
     var rotationRegionPath = new Path( rotationRegion( fullRectangle, backRectangle ), { fill: rotationRegionColor } );
     this.addChild( rotationRegionPath );
+
+    // Increase the touch area for the rotation region and move it toward the back
+    rotationRegionPath.touchArea = rotationRegionPath.bounds.dilated( 8 ).shiftedX( 8 );
+
     rotationRegionPath.addInputListener( new SimpleDragHandler( {
       start: function() {
         showTranslationDragHandlesProperty.value = false;
@@ -189,7 +204,7 @@ define( function( require ) {
     // add light emission on/off button
     var redButton = new BooleanRoundStickyToggleButton( laser.onProperty, {
       radius: 11,
-      centerX: laserImageNode.centerX,
+      centerX: 28,
       centerY: laserImageNode.centerY,
       baseColor: 'red',
       touchExpansion: 5
@@ -207,10 +222,6 @@ define( function( require ) {
       // So the light always looks like it comes from the top left, despite the laser angle
       redButton.setRotation( laser.getAngle() );
     } );
-
-    // touch area
-    var b = this.localBounds.dilatedY( 5 );
-    this.touchArea = new Bounds2( b.minX, b.minY, b.maxX + 12, b.maxY );
 
     /**
      * Called from the occlusion handler.  Translates the view by the specified amount by translating the corresponding

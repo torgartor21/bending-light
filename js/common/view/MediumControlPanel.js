@@ -202,8 +202,10 @@ define( function( require ) {
       arrowWidth: 15
     } );
     // touch area
-    minusButton.touchArea = new Bounds2( minusButton.localBounds.minX - 20, minusButton.localBounds.minY - 5,
-      minusButton.localBounds.maxX + 20, minusButton.localBounds.maxY + 20 );
+    minusButton.touchArea = new Bounds2(
+      minusButton.localBounds.minX - 20, minusButton.localBounds.minY - 5,
+      minusButton.localBounds.maxX + 20, minusButton.localBounds.maxY + 20
+    );
 
     // adjust index of refraction value to the center of the readout box
     indexOfRefractionValueText.centerX = indexOfRefractionReadoutBoxShape.centerX;
@@ -220,8 +222,21 @@ define( function( require ) {
     indexOfRefractionLabel.right = minusButton.left - INSET;
     indexOfRefractionLabel.centerY = minusButton.centerY;
 
-    // handling long strings
-    var sliderWidth = Math.max( materialComboBox.width, plusButton.right - indexOfRefractionLabel.left ) - 10;
+    var indexOfRefractionNode = new Node( {
+      children: textFieldVisible ? [
+        indexOfRefractionLabel,
+        minusButton,
+        indexOfRefractionReadoutBoxShape,
+        indexOfRefractionValueText,
+        plusButton
+      ] : [
+        indexOfRefractionLabel
+      ]
+    } );
+
+    // handling long strings, bring the slider in enough that moving the knob to the right doesn't resize the parent
+    // panel.
+    var sliderWidth = Math.max( materialComboBox.width, indexOfRefractionNode.width ) - 12;
     var labelWidth = sliderWidth * 0.25;
     var airTitle = new Text( airString );
     if ( airTitle.width > labelWidth ) {
@@ -259,25 +274,9 @@ define( function( require ) {
     var unknown = new Text( unknownString, {
       font: new PhetFont( 16 ),
       centerX: indexOfRefractionSlider.centerX,
-      centerY: indexOfRefractionSlider.centerY
+      centerY: indexOfRefractionSlider.centerY,
+      maxWidth: indexOfRefractionSlider.width * 0.8
     } );
-    var indexOfRefractionNode;
-    if ( textFieldVisible ) {
-      indexOfRefractionNode = new Node( {
-        children: [
-          indexOfRefractionLabel,
-          minusButton,
-          indexOfRefractionReadoutBoxShape,
-          indexOfRefractionValueText,
-          plusButton
-        ]
-      } );
-    }
-    else {
-      indexOfRefractionNode = new Node( {
-        children: [ indexOfRefractionLabel ]
-      } );
-    }
 
     // position the indexOfRefractionNode and indexOfRefractionSlider
     indexOfRefractionNode.top = materialComboBox.bottom + INSET;
@@ -296,9 +295,12 @@ define( function( require ) {
     var mediumPanel = new Panel( mediumPanelNode, {
       fill: '#EEEEEE',
       stroke: '#696969',
-      xMargin: options.xMargin,
+      xMargin: 13.5, // Adjusted manually so that the panels will align in English and the slider knob won't go outside
+                     // the panel
       yMargin: options.yMargin,
-      cornerRadius: 5, lineWidth: options.lineWidth
+      cornerRadius: 5,
+      lineWidth: options.lineWidth,
+      resize: false // Don't resize when the slider knob encroaches on the right border
     } );
     this.addChild( mediumPanel );
     Property.multilink( [ mediumProperty, this.laserWavelength ],

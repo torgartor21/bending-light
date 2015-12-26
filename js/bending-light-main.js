@@ -15,23 +15,32 @@ define( function( require ) {
   var MoreToolsScreen = require( 'BENDING_LIGHT/more-tools/MoreToolsScreen' );
   var Sim = require( 'JOIST/Sim' );
   var SimLauncher = require( 'JOIST/SimLauncher' );
+  var Tandem = require( 'TANDEM/Tandem' );
 
   // strings
   var bendingLightTitleString = require( 'string!BENDING_LIGHT/bending-light.title' );
+
+  // constants
+  var tandem = new Tandem( 'bendingLight' );
 
   var simOptions = {
     credits: {
       leadDesign: 'Amy Rouinfar (HTML5),  Noah Podolefsky (Java)',
       softwareDevelopment: 'Sam Reid',
       team: 'Trish Loeblein, Ariel Paul, Kathy Perkins',
-      qualityAssurance: 'Steele Dalton, Elise Morgan, Oliver Orejola, Arnab Purkayastha, Bryan Yoelin',
+      qualityAssurance: 'Steele Dalton, Bryce Griebenow, Elise Morgan, \n\tOliver Orejola, Arnab Purkayastha, Ben Roberts, Bryan Yoelin',
       thanks: 'Thanks to Actual Concepts for working with the PhET development team\n' +
               'to convert this simulation to HTML5.'
-    }
+    },
+    tandem: tandem
   };
 
   SimLauncher.launch( function() {
-    var sim = new Sim( bendingLightTitleString, [ new IntroScreen(), new PrismsScreen(), new MoreToolsScreen() ], simOptions );
+    var sim = new Sim( bendingLightTitleString, [
+      new IntroScreen( tandem.createTandem( 'introScreen' ) ),
+      new PrismsScreen( tandem.createTandem( 'prismsScreen' ) ),
+      new MoreToolsScreen( tandem.createTandem( 'moreToolsScreen' ) )
+    ], simOptions );
     sim.start();
   } );
 } );

@@ -25,7 +25,6 @@ define( function( require ) {
   var Property = require( 'AXON/Property' );
   var Rectangle = require( 'SCENERY/nodes/Rectangle' );
   var Panel = require( 'SUN/Panel' );
-  var Vector2 = require( 'DOT/Vector2' );
   var VBox = require( 'SCENERY/nodes/VBox' );
   var WavelengthControl = require( 'BENDING_LIGHT/common/view/WavelengthControl' );
   var LaserTypeRadioButtonGroup = require( 'BENDING_LIGHT/prisms/view/LaserTypeRadioButtonGroup' );
@@ -47,74 +46,41 @@ define( function( require ) {
     this.prismsModel = prismsModel;
     var prismsView = this;
 
-    /**
-     * Specify how the drag angle should be clamped
-     * @param {number} angle
-     * @returns {*}
-     */
-    function clampDragAngle( angle ) {
-      return angle;
-    }
-
-    /**
-     * In prisms tab laser node can rotate 360 degrees.so arrows showing all the times when laser node rotate
-     * @returns {boolean}
-     */
-    function clockwiseArrowNotAtMax() {
-      return true;
-    }
-
-    /**
-     * Determine if the counterclockwise arrow can be shown.
-     * @returns {boolean}
-     */
-    function ccwArrowNotAtMax() {
-      return true;
-    }
-
-    /**
-     * Rotation if the user clicks top on the object
-     * @param {Shape} full
-     * @param {Shape} back
-     * @returns {*}
-     */
-    function rotationRegionShape( full, back ) {
-      return back;
-    }
-
-    /**
-     * Region for translating the protractor
-     * @param {Shape} fullShape
-     * @returns {*}
-     */
-    function translationRegion( fullShape ) {
-
-      // Empty shape since shouldn't be rotatable in this tab
-      return fullShape;
-    }
-
     BendingLightView.call( this,
-      prismsModel,
-      clampDragAngle,
-      clockwiseArrowNotAtMax,
-      ccwArrowNotAtMax,
-      translationRegion,
-      rotationRegionShape,
-      'laserKnob',
-      90,
-      -43,
-      // occlusion handler, if the prism is dropped behind a control panel, bump it to the left.
-      function( node ) {
 
-        var controlPanels = [
-          laserControlPanel, // eslint-disable-line no-use-before-define
-          environmentMediumControlPanel // eslint-disable-line no-use-before-define
-        ];
-        controlPanels.forEach( function( controlPanel ) {
-          if ( controlPanel.globalBounds.containsPoint( node.globalBounds.center ) ) {
-            node.translateViewXY( node.globalToParentBounds( controlPanel.globalBounds ).minX - node.centerX, 0 );
-          }
-        } );
+      prismsModel,
+
+      // laserTranslationRegion - The protractor can be rotated by dragging it by its ring, translated by dragging the cross-bar
+      function( fullShape ) { return fullShape; },
+
+      // laserRotationRegion - Rotation if the user clicks top on the object
+      function( full, back ) { return back; },
+
+      // laserHasKnob
+      true,
+
+      {
+        // center the play area horizontally in the space between the left side of the screen and the control panels on
+        // the right, and move the laser to the left.
+        horizontalPlayAreaOffset: 240,
+
+        // Center the play area vertically above the south control panel
+        verticalPlayAreaOffset: -43,
+
+        // if the prism is dropped behind a control panel, bump it to the left.
+        occlusionHandler: function( node ) {
+
+          var controlPanels = [
+            laserControlPanel, // eslint-disable-line no-use-before-define
+            laserTypeRadioButtonGroup, // eslint-disable-line no-use-before-define
+            environmentMediumControlPanel // eslint-disable-line no-use-before-define
+          ];
+          controlPanels.forEach( function( controlPanel ) {
+            if ( controlPanel.globalBounds.containsPoint( node.globalBounds.center ) ) {
+              node.translateViewXY( node.globalToParentBounds( controlPanel.globalBounds ).minX - node.centerX, 0 );
+            }
+          } );
+        }
       }
     );
 
@@ -138,7 +104,6 @@ define( function( require ) {
     var environmentMediumControlPanel = new MediumControlPanel( this, prismsModel.mediumColorFactory, prismsModel.environmentMediumProperty,
       environmentString, false, prismsModel.wavelengthProperty,
       indexOfRefractionDecimals, {
-        xMargin: 7,
         yMargin: 6,
         comboBoxListPosition: 'below'
       } );
@@ -165,7 +130,7 @@ define( function( require ) {
         new WavelengthControl( prismsModel.wavelengthProperty, sliderEnabledProperty, 146 ) ]
     } ), {
       cornerRadius: 5,
-      xMargin: 9,
+      xMargin: 10,
       yMargin: 6,
       fill: '#EEEEEE',
       stroke: '#696969',
@@ -225,9 +190,7 @@ define( function( require ) {
     var protractorNode = new ProtractorNode( prismsModel.showProtractorProperty, true, {
       scale: 0.46
     } );
-    protractorNode.center = this.modelViewTransform.modelToViewXY( 0, 0 );
-    var protractorLocation = new Vector2( protractorNode.centerX, protractorNode.centerY );
-    var protractorLocationProperty = new Property( protractorLocation );
+    var protractorLocationProperty = new Property( this.modelViewTransform.modelToViewXY( 2E-5, 0 ) );
 
     var protractorNodeListener = new MovableDragHandler( protractorLocationProperty, {
       targetNode: protractorNode,
@@ -273,7 +236,8 @@ define( function( require ) {
     );
 
     this.resetPrismsView = function() {
-      protractorNode.center = this.modelViewTransform.modelToViewXY( 0, 0 );
+      protractorLocationProperty.reset();
+      protractorNode.reset();
     };
 
     // Add a thin gray line to separate the navigation bar when the environmentMediumNode is black
@@ -360,7 +324,7 @@ define( function( require ) {
       );
 
       // add translation indicators that show if/when the laser can be moved by dragging
-      var arrowLength = 76;
+      var arrowLength = 83;
 
       var horizontalTranslationDragHandle = new TranslationDragHandle(
         this.modelViewTransform,

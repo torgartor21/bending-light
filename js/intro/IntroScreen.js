@@ -27,15 +27,22 @@ define( function( require ) {
   /**
    * @constructor
    */
-  function IntroScreen() {
+  function IntroScreen( tandem ) {
     Screen.call( this, introString, new Image( icon ),
       function() { return new IntroModel( Substance.WATER, true ); },
       function( model ) {
-        return new IntroView( model, 102, false, 2, function( introModel ) {
-          return new LaserTypeAquaRadioButtonGroup( introModel.laserViewProperty );
-        }, [] );
-      },
-      { backgroundColor: 'white' }
+        return new IntroView( model,
+          false, // hasMoreTools
+          2, // indexOfRefractionDecimals
+
+          // createLaserControlPanel
+          function( introModel ) {
+            return new LaserTypeAquaRadioButtonGroup( introModel.laserViewProperty );
+          }, [] );
+      }, {
+        backgroundColor: 'white',
+        tandem: tandem
+      }
     );
   }
 

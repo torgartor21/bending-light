@@ -21,28 +21,28 @@ define( function( require ) {
   var RotationDragHandle = require( 'BENDING_LIGHT/common/view/RotationDragHandle' );
   var SingleColorLightCanvasNode = require( 'BENDING_LIGHT/common/view/SingleColorLightCanvasNode' );
 
-  // images
-  var laserWithoutKnobImage = require( 'image!BENDING_LIGHT/laser.png' );
-  var laserKnobImage = require( 'image!BENDING_LIGHT/laser_knob.png' );
-
   /**
    * @param {BendingLightModel} bendingLightModel - main model of the simulations
-   * @param {function} clampDragAngle - function that limits the angle of laser to its bounds
-   * @param {function} clockwiseArrowNotAtMax - shows whether laser at max angle
-   * @param {function} ccwArrowNotAtMax - shows whether laser at min angle
    * @param {function} laserTranslationRegion - region that defines laser translation
    * @param {function} laserRotationRegion - region that defines laser rotation
-   * @param {string} laserImageName - name of laser image
-   * @param {number} centerOffsetLeft - amount of space that center to be shifted to left
-   * @param {number} verticalOffset - how much to shift the model view transform in stage coordinates
-   * @param {function} occlusionHandler - function that moves objects out from behind a control panel if dropped there
+   * @param {boolean} laserHasKnob - laser image
+   * @param {Object} [options]
    * @constructor
    */
-  function BendingLightView( bendingLightModel, clampDragAngle, clockwiseArrowNotAtMax, ccwArrowNotAtMax,
-                             laserTranslationRegion, laserRotationRegion, laserImageName, centerOffsetLeft,
-                             verticalOffset, occlusionHandler ) {
+  function BendingLightView( bendingLightModel, laserTranslationRegion, laserRotationRegion, laserHasKnob, options ) {
 
-    this.occlusionHandler = occlusionHandler;
+    options = _.extend( {
+      occlusionHandler: function() {}, // {function} moves objects out from behind a control panel if dropped there
+      ccwArrowNotAtMax: function() {return true;}, // {function} shows whether laser at min angle
+      clockwiseArrowNotAtMax: function() { return true; },// {function} shows whether laser at max angle, In prisms tab
+      // laser node can rotate 360 degrees.so arrows showing all the times when laser node rotate
+      clampDragAngle: function( angle ) { return angle; },// {function} function that limits the angle of laser to its bounds
+      horizontalPlayAreaOffset: 0, // {number} in stage coordinates, how far to shift the play area horizontally
+      verticalPlayAreaOffset: 0 // {number} in stage coordinates, how far to shift the play area vertically.  In the
+                                // prisms screen, it is shifted up a bit to center the play area above the south control panel
+    }, options );
+
+    this.occlusionHandler = options.occlusionHandler;
     this.bendingLightModel = bendingLightModel;
     ScreenView.call( this, { layoutBounds: new Bounds2( 0, 0, 834, 504 ) } );
 
@@ -74,7 +74,7 @@ define( function( require ) {
     // @public (read-only)
     this.modelViewTransform = ModelViewTransform2.createSinglePointScaleInvertedYMapping(
       new Vector2( 0, 0 ),
-      new Vector2( 388 - centerOffsetLeft, stageHeight / 2 + verticalOffset ),
+      new Vector2( 388 - options.horizontalPlayAreaOffset, stageHeight / 2 + options.verticalPlayAreaOffset ),
       scale
     );
 
@@ -102,31 +102,27 @@ define( function( require ) {
     this.laserViewLayer = new Node(); // @public (read-only)
     this.addChild( this.laserViewLayer );
 
-    // Used for radius and length of drag handlers
-    var laserImageWidth = laserWithoutKnobImage.width;
+    this.visibleBoundsProperty = new Property( this.layoutBounds ); // @public (read-only)
 
     // add rotation for the laser that show if/when the laser can be rotated about its pivot
     var showRotationDragHandlesProperty = new Property( false );
     var showTranslationDragHandlesProperty = new Property( false );
 
+    var laserNode = new LaserNode( this.modelViewTransform, bendingLightModel.laser, showRotationDragHandlesProperty,
+      showTranslationDragHandlesProperty, options.clampDragAngle, laserTranslationRegion, laserRotationRegion,
+      laserHasKnob, this.visibleBoundsProperty, this.occlusionHandler
+    );
+
     // add laser node rotation and translation arrows in array, to move them to front of all other nodes in prism screen
     this.addLaserHandles(
       showRotationDragHandlesProperty,
       showTranslationDragHandlesProperty,
-      clockwiseArrowNotAtMax,
-      ccwArrowNotAtMax,
-      laserImageWidth
+      options.clockwiseArrowNotAtMax,
+      options.ccwArrowNotAtMax,
+      laserNode.laserImageWidth
     );
-
-    this.visibleBoundsProperty = new Property( this.layoutBounds ); // @public (read-only)
 
     // add the laser
-    var laserImage = (laserImageName === 'laser') ? laserWithoutKnobImage : laserKnobImage;
-    var laserNode = new LaserNode( this.modelViewTransform, bendingLightModel.laser, showRotationDragHandlesProperty,
-      showTranslationDragHandlesProperty, clampDragAngle, laserTranslationRegion, laserRotationRegion, laserImage,
-      this.visibleBoundsProperty,
-      occlusionHandler
-    );
     this.addChild( laserNode );
 
     this.addChild( this.afterLightLayer2 );
